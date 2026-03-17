@@ -1,0 +1,44 @@
+services:
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: openclaw
+    restart: always
+
+    # Bind exclusively to loopback — never exposed to the internet.
+    # K3s uses 6443/80/443/10250 — port 18789 has zero conflict.
+    ports:
+      - "127.0.0.1:18789:18789"
+
+    volumes:
+      # Persistent config (agents, openclaw.json, API tokens)
+      - openclaw_config:/home/node/.openclaw
+      # Persistent workspace (files, memory, conversation history)
+      - openclaw_workspace:/home/node/.openclaw/workspace
+
+    environment:
+      # Ollama cloud — passed straight from the project .env
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-glm-5:cloud}
+      # Playwright cache inside the container
+      - PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
+
+    healthcheck:
+      # /readyz returns 503 while WhatsApp channel is reconnecting — use /healthz
+      # for the liveness check so the container isn't killed during reconnect.
+      test: ["CMD", "curl", "-sf", "http://localhost:18789/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s   # give it time to pull model info on first start
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  openclaw_config:
+    name: openclaw_config
+  openclaw_workspace:
+    name: openclaw_workspace
