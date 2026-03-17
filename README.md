@@ -64,7 +64,9 @@ OLLAMA_HOST=https://ollama.com
 TWILIO_ACCOUNT_SID=ACxxxx
 TWILIO_AUTH_TOKEN=your_token
 TWILIO_FROM_NUMBER=whatsapp:+14155238886
-WHATSAPP_TO_NUMBER=whatsapp:+33612345678
+
+# Personal number OR WhatsApp group ID (e.g. 120363XXXXXXXXXX@g.us)
+WHATSAPP_TO_NUMBER=whatsapp:+YOUR_PHONE_NUMBER
 ```
 
 ---
@@ -105,8 +107,7 @@ The session is saved in a Docker volume — no need to re-scan after restarts.
 
 **3. Test:**
 ```bash
-docker exec openclaw openclaw message send \
-  --channel whatsapp --target +33612345678 --message "Test OK"
+docker exec openclaw openclaw message send --channel whatsapp --target +YOUR_PHONE_NUMBER --message "Test OK"
 ```
 
 **Other modes:**

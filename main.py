@@ -72,9 +72,6 @@ def run(dry_run: bool = False, use_openclaw: bool = False) -> None:
         logger.exception("Ollama API call failed: %s", exc)
         sys.exit(1)
 
-    if use_openclaw:
-        brief += "\n\n─────────────────────────\n💬 Réponds ici pour discuter du brief avec l'IA"
-
     if dry_run:
         logger.info("Step 3/3: DRY RUN — printing brief to stdout.")
         print("\n" + "=" * 60)
