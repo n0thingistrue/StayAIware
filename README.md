@@ -1,24 +1,28 @@
-# 🌍 Daily Global Brief
+# StayAIware
 
-A Python automation system that runs every day at 08:00, collects news from RSS feeds, generates a bilingual (English + French) briefing using Claude AI, and sends it to your WhatsApp via Twilio.
+Automated daily news briefing — RSS feeds → GLM-5 (Ollama cloud) → WhatsApp.
+Runs every morning at 08:00 via cron. Bilingual output (English + French).
 
 ---
 
 ## Project Structure
 
 ```
-daily-global-brief/
-├── main.py              # Entry point — orchestrates the full pipeline
-├── config.py            # Loads .env, validates required vars
-├── feeds.py             # Fetches and parses RSS feeds
-├── summarizer.py        # Sends headlines to Claude, returns formatted brief
-├── whatsapp.py          # Sends the message via Twilio WhatsApp API
-├── feeds_config.json    # RSS feed list (edit to add/remove sources)
-├── requirements.txt     # Python dependencies
-├── setup.sh             # One-shot installer
-├── .env.example         # Template — copy to .env and fill in your keys
-├── .gitignore
-└── logs/                # Auto-created; stores daily_brief.log & cron.log
+StayAIware/
+├── src/
+│   ├── config.py          # Loads .env, validates required variables
+│   ├── feeds.py           # Fetches and parses RSS feeds (round-robin by category)
+│   ├── summarizer.py      # Calls Ollama GLM-5 cloud, returns formatted brief
+│   ├── whatsapp.py        # Sends via Twilio (splits messages at section boundaries)
+│   └── openclaw.py        # Sends via OpenClaw self-hosted gateway
+├── deploy/
+│   ├── docker-compose.yml # OpenClaw container setup
+│   └── setup_openclaw.sh  # OpenClaw deploy + WhatsApp linking script
+├── main.py                # Entry point
+├── feeds_config.json      # RSS feed list
+├── setup.sh               # Python environment installer
+├── requirements.txt
+└── .env.example
 ```
 
 ---
@@ -28,141 +32,116 @@ daily-global-brief/
 | Requirement | Where to get it |
 |---|---|
 | Python 3.10+ | `sudo apt install python3 python3-venv` |
-| Anthropic API key | https://console.anthropic.com |
-| Twilio account + WhatsApp sandbox | https://www.twilio.com/console |
-| Your WhatsApp number | Your phone |
+| Ollama API key | https://ollama.com/settings/keys |
+| Twilio account (optional) | https://www.twilio.com/console |
+| Docker (for OpenClaw) | https://docs.docker.com/engine/install/ |
 
 ---
 
-## 1. Install (Local — Linux Mint)
+## Quick Start
 
 ```bash
-# Clone or copy the project folder, then:
-cd daily-global-brief
+git clone https://github.com/n0thingistrue/StayAIware.git
+cd StayAIware
 bash setup.sh
 ```
 
-`setup.sh` will:
-- Create a `.venv` virtual environment
-- Install all Python packages
-- Copy `.env.example` → `.env`
-- Print the cron line to paste
+`setup.sh` creates a `.venv`, installs dependencies, and copies `.env.example` to `.env`.
 
 ---
 
-## 2. Configure API Keys
+## Configuration
 
-Edit `.env` (created by setup.sh):
+Edit `.env`:
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-...
-TWILIO_ACCOUNT_SID=ACxxxx...
-TWILIO_AUTH_TOKEN=your_auth_token
+# Ollama cloud (https://ollama.com/settings/keys)
+OLLAMA_API_KEY=your-key-here
+OLLAMA_MODEL=glm-5:cloud
+OLLAMA_HOST=https://ollama.com
+
+# Twilio WhatsApp (optional fallback)
+TWILIO_ACCOUNT_SID=ACxxxx
+TWILIO_AUTH_TOKEN=your_token
 TWILIO_FROM_NUMBER=whatsapp:+14155238886
 WHATSAPP_TO_NUMBER=whatsapp:+33612345678
 ```
 
-### Getting Twilio WhatsApp credentials
-
-1. Sign up at https://www.twilio.com (free tier works)
-2. In the console → **Messaging → Try it out → Send a WhatsApp message**
-3. You'll get a sandbox number (e.g. `+14155238886`) and a join code
-4. Send the join code from YOUR WhatsApp to activate the sandbox
-5. Copy your Account SID and Auth Token from the dashboard
-
 ---
 
-## 3. Test a Dry Run
+## Usage
 
 ```bash
+# Dry run — generates brief, prints to terminal, sends nothing
 .venv/bin/python main.py --dry-run
-```
 
-This runs the full pipeline (fetches feeds, calls Claude) but **prints the brief to your terminal instead of sending it**.
-Use this to verify everything works before enabling the cron job.
-
----
-
-## 4. Send a Real Message (Manual Test)
-
-```bash
+# Send via Twilio
 .venv/bin/python main.py
-```
 
-Check your WhatsApp — you should receive the brief within seconds.
+# Send via OpenClaw (self-hosted WhatsApp gateway)
+.venv/bin/python main.py --openclaw
+```
 
 ---
 
-## 5. Schedule with Cron (08:00 every day)
+## OpenClaw Setup (self-hosted WhatsApp)
+
+OpenClaw replaces Twilio — it connects directly to your WhatsApp account via QR scan.
+
+**1. Start the container:**
+```bash
+bash deploy/setup_openclaw.sh
+```
+
+**2. Enable the WhatsApp plugin and scan the QR code:**
+```bash
+bash deploy/setup_openclaw.sh --link
+```
+
+Scan the QR with your phone:
+`WhatsApp → Settings → Linked Devices → Link a Device`
+
+The session is saved in a Docker volume — no need to re-scan after restarts.
+
+**3. Test:**
+```bash
+docker exec openclaw openclaw message send \
+  --channel whatsapp --target +33612345678 --message "Test OK"
+```
+
+**Other modes:**
+```bash
+bash deploy/setup_openclaw.sh --restart   # restart container
+bash deploy/setup_openclaw.sh --logs      # follow logs
+```
+
+---
+
+## Cron (08:00 daily)
 
 ```bash
 crontab -e
 ```
 
-Add this line (replace `/path/to/daily-global-brief` with your actual path):
-
 ```
-0 8 * * * cd /path/to/daily-global-brief && .venv/bin/python main.py >> logs/cron.log 2>&1
-```
-
-Verify cron is running:
-
-```bash
-grep CRON /var/log/syslog | tail -20
-# or:
-tail -f logs/cron.log
+0 8 * * * cd /opt/stayaiware && .venv/bin/python main.py --openclaw >> logs/cron.log 2>&1
 ```
 
 ---
 
-## 6. Deploy on a VPS
+## RSS Sources
 
-```bash
-# 1. Copy project to VPS
-scp -r daily-global-brief user@your-vps-ip:~/
+22 feeds across 5 categories — balanced round-robin selection (7 articles per category):
 
-# 2. SSH in and run setup
-ssh user@your-vps-ip
-cd daily-global-brief
-bash setup.sh
+| Category | Sources |
+|---|---|
+| Geopolitics | BBC World Europe, BBC World, The Guardian, Al Jazeera, UN News, NPR World |
+| Global Economy | BBC Business, The Guardian Business & Economics, NPR Economy |
+| Crypto | CoinDesk, CoinTelegraph, Decrypt, Bitcoin Magazine |
+| Tech | BBC Tech, TechCrunch, Wired, Ars Technica |
+| Positive News | Good News Network, Positive News, Reasons to be Cheerful, Yes! Magazine |
 
-# 3. Fill in .env on the VPS
-nano .env
-
-# 4. Test
-.venv/bin/python main.py --dry-run
-
-# 5. Add cron (same as above)
-crontab -e
-```
-
-For VPS, also make sure the system timezone is correct:
-
-```bash
-timedatectl set-timezone Europe/Paris   # or your timezone
-```
-
----
-
-## Customising RSS Feeds
-
-Edit `feeds_config.json` to add, remove, or adjust sources:
-
-```json
-{
-  "feeds": [
-    {
-      "name": "My Custom Feed",
-      "url": "https://example.com/rss",
-      "category": "tech"
-    }
-  ],
-  "max_articles_per_feed": 5,
-  "max_total_articles": 35
-}
-```
-
-Valid categories: `geopolitics`, `tech`, `economy`, `crypto`, `positive`
+Edit `feeds_config.json` to add or remove sources.
 
 ---
 
@@ -170,55 +149,30 @@ Valid categories: `geopolitics`, `tech`, `economy`, `crypto`, `positive`
 
 | File | Content |
 |---|---|
-| `logs/daily_brief.log` | Detailed run log (from Python logging) |
-| `logs/cron.log` | stdout/stderr captured by cron |
+| `logs/daily_brief.log` | Full run log |
+| `logs/cron.log` | Cron output |
 
 ---
 
-## Example Output
+## Output Format
 
 ```
 🌍 DAILY GLOBAL BRIEF
-Date: Monday, March 16 2026
+Date: Monday, March 17 2026
 
 ─────────────────────────
-G7 AGREES NEW SANCTIONS ON CRITICAL MINERALS
+TOPIC TITLE
 
-🇬🇧 G7 finance ministers reached a deal on Sunday to impose coordinated
-export controls on critical minerals used in battery and chip production.
-The agreement targets shipments to countries deemed strategic rivals.
+🇬🇧 English summary (2-3 sentences)
 
-🇫🇷 Les ministres des finances du G7 ont conclu dimanche un accord pour
-instaurer des contrôles coordonnés sur les exportations de minéraux
-critiques. L'accord cible les livraisons vers des pays considérés comme
-des rivaux stratégiques.
+🇫🇷 French summary (2-3 sentences)
 
-💬 Do you think export controls on minerals could spark a new trade war?
+💬 Conversation starter question
 ─────────────────────────
-...
+[× 4 stories]
 
 🧠 Word of the Day
-• Word: Resilience
-• French: Résilience
-• Example: The company showed remarkable resilience after the cyber attack.
+• Word: ...
+• French: ...
+• Example: ...
 ```
-
----
-
-## Future Improvements
-
-### Near-term
-- **Smarter filtering** — score headlines by recency + keyword importance before sending to Claude, so you always get the freshest stories.
-- **Topic deduplication** — cluster similar headlines (e.g. two Reuters/BBC stories on the same event) and merge them into one entry before the AI prompt, saving tokens.
-- **Retry logic** — if a feed is down or Claude returns an error, retry up to 3 times with exponential back-off.
-
-### Medium-term
-- **"Question of the Day" for English practice** — add a dedicated section where Claude generates a grammar or vocabulary exercise based on the day's news vocabulary.
-- **Category weighting** — let the user configure how many stories per category they want (e.g. always 1 crypto, 2 geopolitics, 1 positive).
-- **Telegram / Signal fallback** — if WhatsApp delivery fails, re-send via a second channel.
-- **Web archive** — save each brief as a dated `.txt` file in `archive/` so you can review past editions.
-
-### Long-term
-- **Personalisation** — let the user provide a list of tracked keywords (companies, countries, topics) and have Claude flag stories that match.
-- **Multi-language expansion** — add Spanish, German, or Arabic output by changing the system prompt.
-- **Dashboard** — a minimal Flask/FastAPI endpoint that shows the last 7 briefs as HTML.
