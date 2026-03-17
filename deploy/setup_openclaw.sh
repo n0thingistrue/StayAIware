@@ -20,7 +20,7 @@ set -euo pipefail
 VPS_HOST="${VPS_HOST:?Set VPS_HOST before running. e.g. export VPS_HOST=1.2.3.4}"
 VPS_USER="${VPS_USER:-root}"
 REMOTE_DIR="${REMOTE_DIR:-/opt/openclaw}"
-LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOCAL_PORT="${LOCAL_PORT:-8080}"   # tunnel: localhost:$LOCAL_PORT → VPS:18789
 CONTAINER_NAME="openclaw"
 
