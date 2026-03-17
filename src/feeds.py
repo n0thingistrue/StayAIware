@@ -6,21 +6,18 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Optional
 
 import feedparser
 import requests
 
-import config
+from . import config
 
 logger = logging.getLogger(__name__)
 
-# feedparser uses urllib internally; set a browser-like user-agent so feeds
-# that block bots still respond.
 feedparser.USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36 daily-global-brief/1.0"
+    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36 stayaiware/1.0"
 )
 
 
@@ -40,16 +37,13 @@ class Article:
 
 
 def _strip_html(text: str) -> str:
-    """Remove HTML tags and normalise whitespace."""
     clean = re.sub(r"<[^>]+>", "", text or "")
     clean = re.sub(r"\s+", " ", clean).strip()
     return clean
 
 
 def _fetch_feed(url: str, source: str, category: str, max_items: int) -> list[Article]:
-    """Parse a single RSS/Atom feed and return up to max_items articles."""
     try:
-        # Some feeds redirect; requests follows redirects better than feedparser.
         resp = requests.get(url, timeout=15, headers={"User-Agent": feedparser.USER_AGENT})
         resp.raise_for_status()
         feed = feedparser.parse(resp.content)
@@ -66,7 +60,6 @@ def _fetch_feed(url: str, source: str, category: str, max_items: int) -> list[Ar
         description = _strip_html(
             entry.get("summary", "") or entry.get("description", "")
         )
-        # Truncate long descriptions
         if len(description) > 300:
             description = description[:297] + "..."
 
@@ -89,21 +82,12 @@ def _fetch_feed(url: str, source: str, category: str, max_items: int) -> list[Ar
 
 
 def fetch_all_articles() -> list[Article]:
-    """
-    Load feeds from feeds_config.json, fetch every feed, deduplicate by title,
-    then return a balanced selection across categories capped at max_total_articles.
-
-    Balancing works by round-robin across categories so that even if geopolitics
-    has many more sources than crypto or positive news, every category gets
-    proportional representation in the final list.
-    """
     with open(config.FEEDS_CONFIG_PATH, encoding="utf-8") as fh:
         cfg = json.load(fh)
 
     max_per_feed: int = cfg.get("max_articles_per_feed", 5)
     max_total: int = cfg.get("max_total_articles", 35)
 
-    # Collect all articles, grouped by category, with deduplication.
     by_category: dict[str, list[Article]] = {}
     seen_titles: set[str] = set()
 
@@ -129,7 +113,6 @@ def fetch_all_articles() -> list[Article]:
         max_total,
     )
 
-    # Round-robin across categories so every category appears in the output.
     balanced: list[Article] = []
     buckets = list(by_category.values())
     positions = [0] * len(buckets)
@@ -144,14 +127,13 @@ def fetch_all_articles() -> list[Article]:
                 positions[i] += 1
                 added_this_round += 1
         if added_this_round == 0:
-            break  # All buckets exhausted
+            break
 
     logger.info("Returning %d balanced articles.", len(balanced))
     return balanced
 
 
 def articles_to_prompt_text(articles: list[Article]) -> str:
-    """Format all articles as a numbered list for the AI prompt."""
     lines = []
     for i, article in enumerate(articles, start=1):
         lines.append(f"{i}. {article.to_text()}")

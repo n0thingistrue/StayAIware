@@ -1,9 +1,6 @@
 """
 summarizer.py — Send collected headlines to GLM-5 via Ollama cloud API
                 and return the formatted Daily Global Brief.
-
-Requires an Ollama account + API key: https://ollama.com/settings/keys
-Model used: glm-5:cloud  (equivalent to `ollama run glm-5:cloud`)
 """
 
 import logging
@@ -11,11 +8,10 @@ from datetime import date
 
 from ollama import Client
 
-import config
+from . import config
 
 logger = logging.getLogger(__name__)
 
-# WhatsApp messages are capped at 4096 chars.
 MAX_BRIEF_CHARS = 3800
 
 SYSTEM_PROMPT = """\
@@ -77,10 +73,6 @@ Date: {today}
 
 
 def generate_brief(headlines_text: str) -> str:
-    """
-    Call the Ollama cloud API (glm-5:cloud) and return the formatted brief.
-    Raises on connection or API errors.
-    """
     today = date.today().strftime("%A, %B %d %Y")
 
     client = Client(
