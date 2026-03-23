@@ -1,4 +1,4 @@
-# Secrets — NEVER commit these
+# Secrets
 .env
 openclaw.env
 *.env
