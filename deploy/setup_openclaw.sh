@@ -49,6 +49,9 @@ fi
 if [[ "${1:-}" == "--link" ]]; then
     info "Enabling WhatsApp plugin…"
     docker exec "${CONTAINER_NAME}" openclaw plugins enable whatsapp
+    info "Restarting gateway to apply plugin…"
+    docker restart "${CONTAINER_NAME}"
+    sleep 15
     info "Starting WhatsApp login — scan the QR code with your phone:"
     docker exec -it "${CONTAINER_NAME}" openclaw channels login --channel whatsapp
     exit 0
@@ -63,6 +66,10 @@ if [[ "${COMPOSE}" == "docker compose" ]]; then
 else
     $COMPOSE -f "${COMPOSE_FILE}" up -d
 fi
+
+info "Fixing volume permissions…"
+docker run --rm -v openclaw_config:/data alpine chown -R 1000:1000 /data
+docker run --rm -v openclaw_workspace:/data alpine chown -R 1000:1000 /data
 
 info "Waiting for container to be healthy (up to 90s)…"
 for i in $(seq 1 18); do
