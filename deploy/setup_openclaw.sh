@@ -22,13 +22,24 @@ command -v docker &>/dev/null || die "Docker not found. Run: apt install docker.
 [ -f "${ENV_FILE}" ]     || die ".env not found at ${ENV_FILE}"
 [ -f "${COMPOSE_FILE}" ] || die "docker-compose.yml not found at ${COMPOSE_FILE}"
 
+# Detect docker compose command (plugin vs standalone)
+if docker compose version &>/dev/null 2>&1; then
+    COMPOSE="docker compose"
+elif command -v docker-compose &>/dev/null; then
+    COMPOSE="docker-compose"
+else
+    info "docker compose not found — installing docker-compose…"
+    apt install -y docker-compose || die "Failed to install docker-compose. Run: apt install docker-compose -y"
+    COMPOSE="docker-compose"
+fi
+
 if [[ "${1:-}" == "--logs" ]]; then
     exec docker logs -f "${CONTAINER_NAME}"
 fi
 
 if [[ "${1:-}" == "--restart" ]]; then
     info "Stopping container…"
-    docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
+    $COMPOSE -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
 fi
 
 if [[ "${1:-}" == "--link" ]]; then
@@ -43,13 +54,14 @@ chmod 600 "${ENV_FILE}"
 info ".env permissions set to 600."
 
 info "Pulling image and starting OpenClaw…"
-docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d --pull always
+$COMPOSE -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d --pull always
 
 info "Waiting for container to be healthy (up to 90s)…"
 for i in $(seq 1 18); do
     STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${CONTAINER_NAME}" 2>/dev/null || echo "starting")
     if [[ "${STATUS}" == "healthy" ]]; then
-        info "Container is healthy."; break
+        info "Container is healthy."
+        break
     fi
     echo -n "  [${i}/18] ${STATUS}…"
     sleep 5
