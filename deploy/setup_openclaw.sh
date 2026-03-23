@@ -39,7 +39,11 @@ fi
 
 if [[ "${1:-}" == "--restart" ]]; then
     info "Stopping container…"
-    $COMPOSE -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
+    if [[ "${COMPOSE}" == "docker compose" ]]; then
+        $COMPOSE -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
+    else
+        $COMPOSE -f "${COMPOSE_FILE}" down
+    fi
 fi
 
 if [[ "${1:-}" == "--link" ]]; then
@@ -54,7 +58,11 @@ chmod 600 "${ENV_FILE}"
 info ".env permissions set to 600."
 
 info "Pulling image and starting OpenClaw…"
-$COMPOSE -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d --pull always
+if [[ "${COMPOSE}" == "docker compose" ]]; then
+    $COMPOSE -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d --pull always
+else
+    $COMPOSE -f "${COMPOSE_FILE}" up -d
+fi
 
 info "Waiting for container to be healthy (up to 90s)…"
 for i in $(seq 1 18); do
