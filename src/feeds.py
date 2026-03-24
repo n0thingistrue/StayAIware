@@ -91,8 +91,12 @@ def fetch_all_articles() -> list[Article]:
     by_category: dict[str, list[Article]] = {}
     seen_titles: set[str] = set()
 
+    active = set(cfg.get("active_categories", []))
+
     for feed_def in cfg["feeds"]:
         cat = feed_def["category"]
+        if active and cat not in active:
+            continue
         articles = _fetch_feed(
             url=feed_def["url"],
             source=feed_def["name"],
