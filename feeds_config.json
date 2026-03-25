@@ -2,11 +2,6 @@
   "active_categories": ["geopolitics", "ai", "cyber", "crypto"],
   "feeds": [
   {
-    "name": "MIT Tech Review - AI",
-    "url": "https://www.technologyreview.com/feed/",
-    "category": "ai"
-  },
-  {
     "name": "The Verge - AI",
     "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
     "category": "ai"
@@ -17,8 +12,8 @@
     "category": "ai"
   },
   {
-    "name": "Hugging Face Blog",
-    "url": "https://huggingface.co/blog/feed.xml",
+    "name": "TechCrunch - AI",
+    "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
     "category": "ai"
   },
   {
@@ -37,8 +32,13 @@
     "category": "cyber"
   },
   {
-    "name": "Schneier on Security",
-    "url": "https://www.schneier.com/feed/atom/",
+    "name": "Dark Reading",
+    "url": "https://www.darkreading.com/rss.xml",
+    "category": "cyber"
+  },
+  {
+    "name": "SecurityWeek",
+    "url": "https://feeds.feedburner.com/securityweek",
     "category": "cyber"
   },
     {
@@ -62,13 +62,13 @@
       "category": "geopolitics"
     },
     {
-      "name": "UN News",
-      "url": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+      "name": "Reuters - World News",
+      "url": "https://feeds.reuters.com/Reuters/worldNews",
       "category": "geopolitics"
     },
     {
-      "name": "NPR World",
-      "url": "https://feeds.npr.org/1004/rss.xml",
+      "name": "France 24",
+      "url": "https://www.france24.com/en/rss",
       "category": "geopolitics"
     },
     {
@@ -107,8 +107,8 @@
       "category": "crypto"
     },
     {
-      "name": "Bitcoin Magazine",
-      "url": "https://bitcoinmagazine.com/.rss/full/",
+      "name": "The Block",
+      "url": "https://www.theblock.co/rss.xml",
       "category": "crypto"
     },
     {

@@ -136,13 +136,13 @@ crontab -e
 
 | Category | Sources |
 |---|---|
-| Geopolitics | BBC World Europe, BBC World, The Guardian, Al Jazeera, UN News, NPR World |
+| Geopolitics | BBC World Europe, BBC World, The Guardian, Al Jazeera, Reuters, France 24 |
 | Global Economy | BBC Business, The Guardian Business & Economics, NPR Economy |
-| Crypto | CoinDesk, CoinTelegraph, Decrypt, Bitcoin Magazine |
+| Crypto | CoinDesk, CoinTelegraph, Decrypt, The Block |
 | Tech | BBC Tech, TechCrunch, Wired, Ars Technica |
 | Positive News | Good News Network, Positive News, Reasons to be Cheerful, Yes! Magazine |
-| AI | MIT Tech Review, The Verge AI, VentureBeat AI, Hugging Face Blog |
-| Cyber | Krebs on Security, The Hacker News, Bleeping Computer, Schneier on Security |
+| AI | The Verge AI, VentureBeat AI, TechCrunch AI |
+| Cyber | Krebs on Security, The Hacker News, Bleeping Computer, Dark Reading, SecurityWeek |
 
 Edit `feeds_config.json` to add/remove sources or change `active_categories` to filter by category.
 
