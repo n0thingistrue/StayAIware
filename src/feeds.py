@@ -2,10 +2,12 @@
 feeds.py — Fetch and parse RSS feeds, return a clean list of articles.
 """
 
+import calendar
 import json
 import logging
 import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import feedparser
@@ -28,6 +30,7 @@ class Article:
     category: str
     source: str
     published: Optional[str] = None
+    published_dt: Optional[datetime] = None
 
     def to_text(self) -> str:
         parts = [f"[{self.category.upper()}] {self.source}: {self.title}"]
@@ -64,8 +67,14 @@ def _fetch_feed(url: str, source: str, category: str, max_items: int) -> list[Ar
             description = description[:297] + "..."
 
         published = None
-        if hasattr(entry, "published"):
-            published = entry.published
+        published_dt = None
+        if entry.get("published_parsed"):
+            try:
+                published = entry.published
+                ts = calendar.timegm(entry.published_parsed)
+                published_dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+            except Exception:
+                pass
 
         articles.append(
             Article(
@@ -74,6 +83,7 @@ def _fetch_feed(url: str, source: str, category: str, max_items: int) -> list[Ar
                 category=category,
                 source=source,
                 published=published,
+                published_dt=published_dt,
             )
         )
 
@@ -92,6 +102,7 @@ def fetch_all_articles() -> list[Article]:
     seen_titles: set[str] = set()
 
     active = set(cfg.get("active_categories", []))
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
     for feed_def in cfg["feeds"]:
         cat = feed_def["category"]
@@ -104,6 +115,9 @@ def fetch_all_articles() -> list[Article]:
             max_items=max_per_feed,
         )
         for article in articles:
+            if article.published_dt and article.published_dt < cutoff:
+                logger.debug("Skipping article older than 24h: %s", article.title[:50])
+                continue
             key = article.title[:60].lower()
             if key not in seen_titles:
                 seen_titles.add(key)
