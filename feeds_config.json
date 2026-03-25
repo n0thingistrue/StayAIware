@@ -153,5 +153,5 @@
     }
   ],
   "max_articles_per_feed": 5,
-  "max_total_articles": 35
+  "max_total_articles": 50
 }

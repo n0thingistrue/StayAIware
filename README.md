@@ -132,7 +132,7 @@ crontab -e
 
 ## RSS Sources
 
-22 feeds across 5 categories — balanced round-robin selection (7 articles per category):
+30 feeds across 7 categories — balanced round-robin selection, filtered to last 24h:
 
 | Category | Sources |
 |---|---|
@@ -141,8 +141,10 @@ crontab -e
 | Crypto | CoinDesk, CoinTelegraph, Decrypt, Bitcoin Magazine |
 | Tech | BBC Tech, TechCrunch, Wired, Ars Technica |
 | Positive News | Good News Network, Positive News, Reasons to be Cheerful, Yes! Magazine |
+| AI | MIT Tech Review, The Verge AI, VentureBeat AI, Hugging Face Blog |
+| Cyber | Krebs on Security, The Hacker News, Bleeping Computer, Schneier on Security |
 
-Edit `feeds_config.json` to add or remove sources.
+Edit `feeds_config.json` to add/remove sources or change `active_categories` to filter by category.
 
 ---
 
